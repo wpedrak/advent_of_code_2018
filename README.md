@@ -1,1 +1,1 @@
-# advent_of_code_2018
+My solutions of `advent of code` 2018. All in python3.
