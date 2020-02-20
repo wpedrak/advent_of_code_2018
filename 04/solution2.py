@@ -64,7 +64,7 @@ for entry in sorted_entries:
         for minute in range(last_sleep_minute, wake_up_minute):
             sleep_minutes[guard_on_shift][minute] += 1
 
-most_sleepy = max(list(sleep_minutes.items()), key=lambda x: sum(x[1]))
+most_sleepy = max(list(sleep_minutes.items()), key=lambda x: max(x[1]))
 print(f'id of most sleepy guard {most_sleepy[0]}')
 
 arg_max = None
