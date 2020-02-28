@@ -33,9 +33,6 @@ class Cart:
 
         rail = rails[self.y][self.x]
 
-        if is_cart(rail):
-            raise Exception(f'Crash on ({self.x}, {self.y})')
-
         self.adjust_direction(rail)
 
     def adjust_direction(self, rail):
@@ -56,27 +53,22 @@ class Cart:
 
         raise Exception(f'Unlegal rail:"{rail}"')
 
-    def slash(self):
+    def case_on_direction(self, cases):
         direction = self.direction
         if direction == '<':
-            self.direction = 'v'
+            self.direction = cases[0]
         if direction == '>':
-            self.direction = '^'
+            self.direction = cases[1]
         if direction == '^':
-            self.direction = '>'
+            self.direction = cases[2]
         if direction == 'v':
-            self.direction = '<'
+            self.direction = cases[3]
+
+    def slash(self):
+        self.case_on_direction('v^><')
 
     def backslash(self):
-        direction = self.direction
-        if direction == '<':
-            self.direction = '^'
-        if direction == '>':
-            self.direction = 'v'
-        if direction == '^':
-            self.direction = '<'
-        if direction == 'v':
-            self.direction = '>'
+        self.case_on_direction('^v<>')
 
     def intersection(self):
         self.turn_left()
@@ -87,26 +79,10 @@ class Cart:
         self.next_turn = (self.next_turn + 1) % 3
 
     def turn_left(self):
-        direction = self.direction
-        if direction == '<':
-            self.direction = 'v'
-        if direction == '>':
-            self.direction = '^'
-        if direction == '^':
-            self.direction = '<'
-        if direction == 'v':
-            self.direction = '>'
+        self.case_on_direction('v^<>')
 
     def turn_right(self):
-        direction = self.direction
-        if direction == '<':
-            self.direction = '^'
-        if direction == '>':
-            self.direction = 'v'
-        if direction == '^':
-            self.direction = '>'
-        if direction == 'v':
-            self.direction = '<'
+        self.case_on_direction('^v><')
 
     def move(self):
         direction = self.direction
@@ -128,6 +104,22 @@ class Cart:
         return str(self)
 
 
+def find_accidents(carts):
+    carts_coordinates = set((c.x, c.y) for c in carts)
+
+    accidents = []
+
+    for cart in carts:
+        coordinates = (cart.x, cart.y)
+
+        if coordinates not in carts_coordinates:
+            accidents.append(coordinates)
+            continue
+
+        carts_coordinates.remove(coordinates)
+    
+    return accidents
+
 lines = get_lines()
 original_map = [remove_carts(line) for line in lines]
 
@@ -143,13 +135,15 @@ carts.sort()
 
 tick_number = 0
 
-while tick_number < 16:
+while True:
     print(tick_number)
     tick_number += 1
 
     for cart in carts:
         cart.tick(original_map)
 
-
+        accidents = find_accidents(carts)
+        if accidents:
+            print(accidents)
+            raise Exception('Carts crashed!')
     carts.sort()
-    print(carts)
