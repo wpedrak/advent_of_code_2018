@@ -94,7 +94,7 @@ for generation in range(NUMBER_OF_GENERATIONS):
 
     score = pos_sum(this_generation)
 
-    if score - previous_score == 50: # 50 observed 
+    if score - previous_score == 50: # 50 pattern observed previously
         print(generation, score, previous_score)
         # printed: 89 5195 5145 and then print on every generation
         # so assume result: (NUMBER_OF_GENERATIONS - 90) * 50 + 5195 = 2500000000695
