@@ -16,12 +16,49 @@ class Unit:
         # reading order
         return (self.y, self.x) < (unit.y, unit.x)
 
+    def opponent(self):
+        opp = {
+            Unit.ELF: Unit.GOBLIN,
+            Unit.GOBLIN: Unit.ELF
+        }
+        return opp[self.fraction]
+
     def move(self):
         target, distance = self.find_target()
+        if not target:
+            return
+
         if distance == 0:
             return
 
-        pass
+        direction = self.find_direction(target)
+
+        self.perform_move(direction)
+
+    def find_target(self):
+        visited = set()
+        to_visit = [(self.x, self.y)]
+        dist = 0
+
+        while to_visit:
+            targets = list(filter(
+                lambda p: self.battle_map.is_near(p, self.opponent()),
+                to_visit
+            ))
+
+            if targets:
+                return self.reading_order(targets), dist
+
+            visited |= set(to_visit)
+            to_visit = [
+                self.battle_map.get_neighbours(p)
+                for p in to_visit
+                if p not in visited
+            ]
+            dist += 1
+
+    def reading_order(self, points):
+        return min(points, key=lambda p: (p[1], p[0]))
 
     def attack(self):
         pass
@@ -55,6 +92,24 @@ class Board:
     def fight_finished(self):
         fractions_of_alive = [u.fraction for u in self.units if not u.is_dead]
         return len(set(fractions_of_alive)) == 1
+
+    def get_neighbours(self, point):
+        x, y = point
+        potential_neighbours = [
+            (x - 1, y),
+            (x + 1, y),
+            (x, y - 1),
+            (x, y + 1)
+        ]
+
+        return [p for p in potential_neighbours if self.battle_map[y][x] == '.']
+
+    def is_near(self, point, item):
+        neighbours = self.get_neighbours(point)
+        return any([
+            self.battle_map[n[1]][n[0]] == item
+            for n in neighbours
+        ])
 
     def tick(self):
         units_in_order = list(sorted(self.units))
