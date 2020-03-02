@@ -1,3 +1,5 @@
+from collections import deque
+
 class Unit:
     ELF = 'E'
     GOBLIN = 'G'
@@ -25,6 +27,9 @@ class Unit:
 
     def move(self):
         target, distance = self.find_target()
+
+        print(f'target is {target} and dist {distance}')
+
         if not target:
             return
 
@@ -32,6 +37,8 @@ class Unit:
             return
 
         direction = self.find_direction(target)
+
+        print(f'will go to {direction}')
 
         self.perform_move(direction)
 
@@ -41,21 +48,51 @@ class Unit:
         dist = 0
 
         while to_visit:
+            # print('to visit', to_visit)
             targets = list(filter(
                 lambda p: self.battle_map.is_near(p, self.opponent()),
                 to_visit
             ))
+
+            # print('targets', targets)
 
             if targets:
                 return self.reading_order(targets), dist
 
             visited |= set(to_visit)
             to_visit = [
-                self.battle_map.get_neighbours(p)
-                for p in to_visit
-                if p not in visited
+                new_point
+                for point in to_visit
+                for new_point in self.battle_map.get_neighbours(point)
+                if new_point not in visited
             ]
+
             dist += 1
+
+        return None, 0
+
+    def find_direction(self, target):
+        self_point = (self.x, self.y)
+        neighbours = self.battle_map.get_neighbours(self_point)
+
+        if not neighbours:
+            return self_point
+
+        distances = [self.battle_map.distance(n, target) for n in neighbours]
+        min_dist = min(distances)
+
+        closest_points = [point for dist, point in zip(distances, neighbours) if dist == min_dist]
+
+        return self.reading_order(closest_points)
+
+    def perform_move(self, direction):
+        x, y = direction
+        board = self.battle_map.battle_map
+        # print(self.x, self.y)
+        board[self.y][self.x] = '.'
+        board[y][x] = self.fraction
+        self.x = x
+        self.y = y
 
     def reading_order(self, points):
         return min(points, key=lambda p: (p[1], p[0]))
@@ -78,7 +115,7 @@ class Board:
                 if item not in [Unit.ELF, Unit.GOBLIN]:
                     continue
 
-                unit = Unit(x, y, item, battle_map)
+                unit = Unit(x, y, item, self)
                 units.append(unit)
 
         self.units = units
@@ -93,8 +130,9 @@ class Board:
         fractions_of_alive = [u.fraction for u in self.units if not u.is_dead]
         return len(set(fractions_of_alive)) == 1
 
-    def get_neighbours(self, point):
+    def get_neighbours(self, point, allowed_chars=['.']):
         x, y = point
+        # print(point)
         potential_neighbours = [
             (x - 1, y),
             (x + 1, y),
@@ -102,14 +140,57 @@ class Board:
             (x, y + 1)
         ]
 
-        return [p for p in potential_neighbours if self.battle_map[y][x] == '.']
+        # print('neigh')
+        # print(potential_neighbours)
+        # print([self.battle_map[y][x] for p in potential_neighbours])
+        # print('no neigh')
+
+        return [p for p in potential_neighbours if self.battle_map[p[1]][p[0]] in allowed_chars]
 
     def is_near(self, point, item):
-        neighbours = self.get_neighbours(point)
+        neighbours = self.get_neighbours(point, allowed_chars=['E', 'G'])
+        # print(point)
+        # print(item)
+        # print(neighbours)
+        # print([
+        #     self.battle_map[n[1]][n[0]]
+        #     for n in neighbours
+        # ])
         return any([
             self.battle_map[n[1]][n[0]] == item
             for n in neighbours
         ])
+
+    def distance(self, source, target):
+        # print(source, target)
+        to_visit =  deque([source, 'UP'])
+        visited = set()
+        dist = 0
+
+        while to_visit and dist < 3:
+            # print('to_visit', to_visit)
+            point = to_visit.popleft()
+
+
+            # print(point)
+            if point == 'UP':
+                dist += 1
+                to_visit.append('UP')
+                continue
+
+            if point in visited:
+                continue
+
+            visited.add(point)
+
+            if point == target:
+                return dist
+
+            to_visit += [p for p in self.get_neighbours(point) if p not in visited]
+            # print('to_visit2', to_visit)
+
+
+        return float('inf')
 
     def tick(self):
         units_in_order = list(sorted(self.units))
@@ -143,7 +224,7 @@ def solve(test_number=0):
     board.display()
 
     # while not board.fight_finished():
-    for _ in range(1):
+    for _ in range(3):
         board.tick()
         board.display()
 
