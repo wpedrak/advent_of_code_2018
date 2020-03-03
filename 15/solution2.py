@@ -51,7 +51,12 @@ class Unit:
         self.perform_move(direction)
 
     def find_target(self):
+        self_point = (self.x, self.y)
+        if self.battle_map.is_near(self_point, self.opponent()):
+            return (self.x, self.y), 0
+
         targets = set(self.battle_map.get_free_spots(self.opponent()))
+        print(targets)
         reached_targets = []
         visited = set()
         to_visit = deque([(self.x, self.y), 'UP'])
@@ -65,8 +70,8 @@ class Unit:
 
             if point == 'UP':
                 if reached_targets:
-                    target = self.reading_order(targets)
-                    return target, dist
+                    reached_target = self.reading_order(reached_targets)
+                    return reached_target, dist
 
                 dist += 1
                 to_visit.append('UP')
@@ -80,6 +85,10 @@ class Unit:
             to_visit += [
                 p for p in self.battle_map.get_neighbours(point) if p not in visited
             ]
+
+        if reached_targets:
+            reached_target = self.reading_order(reached_targets)
+            return reached_target, dist
 
         return None, 0
 
@@ -265,6 +274,8 @@ class Board:
             self.units
         ))
 
+        # print('all from fraction', all_from_fraction)
+
         free_spots = []
 
         for unit in all_from_fraction:
@@ -331,7 +342,7 @@ def solve(elves_attack, test_number=0):
     return round_number * hp_sum
 
 
-test = True
+test = False
 
 if not test:
     result = solve(3)
@@ -346,7 +357,7 @@ else:
         34
     ]
     test_results = [solve(attack_boost[i-1], test_number=i)
-                    for i in range(1, 1 + 1)]
+                    for i in range(1, 6 + 1)]
     expected_values = [
         4988,
         29064,
