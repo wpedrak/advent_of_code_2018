@@ -28,15 +28,10 @@ class Unit:
         return opp[self.fraction]
 
     def move(self):
-        # print(f'moving ({self.x}, {self.y})')
-
         if not self.battle_map.is_free_spot(self.opponent()):
-            # print('No free spots, skipping...')
             return
 
         target, distance = self.find_target()
-
-        # print(f'target is {target} and dist {distance}')
 
         if not target:
             return
@@ -46,8 +41,6 @@ class Unit:
 
         direction = self.find_direction(target)
 
-        print(f'will go to {direction}')
-
         self.perform_move(direction)
 
     def find_target(self):
@@ -56,7 +49,6 @@ class Unit:
             return (self.x, self.y), 0
 
         targets = set(self.battle_map.get_free_spots(self.opponent()))
-        print(targets)
         reached_targets = []
         visited = set()
         to_visit = deque([(self.x, self.y), 'UP'])
@@ -110,7 +102,6 @@ class Unit:
     def perform_move(self, direction):
         x, y = direction
         board = self.battle_map.battle_map
-        # print(self.x, self.y)
         board[self.y][self.x] = '.'
         board[y][x] = self.fraction
         self.x = x
@@ -195,7 +186,6 @@ class Board:
 
     def get_neighbours(self, point, allowed_chars=['.']):
         x, y = point
-        # print(point)
         potential_neighbours = [
             (x - 1, y),
             (x + 1, y),
@@ -203,38 +193,23 @@ class Board:
             (x, y + 1)
         ]
 
-        # print('neigh')
-        # print(potential_neighbours)
-        # print([self.battle_map[y][x] for p in potential_neighbours])
-        # print('no neigh')
-
         return [p for p in potential_neighbours if self.battle_map[p[1]][p[0]] in allowed_chars]
 
     def is_near(self, point, item):
         neighbours = self.get_neighbours(point, allowed_chars=['E', 'G'])
-        # print(point)
-        # print(item)
-        # print(neighbours)
-        # print([
-        #     self.battle_map[n[1]][n[0]]
-        #     for n in neighbours
-        # ])
         return any([
             self.battle_map[n[1]][n[0]] == item
             for n in neighbours
         ])
 
     def distance(self, source, target):
-        # print(source, target)
         to_visit = deque([source, 'UP'])
         visited = set()
         dist = 0
 
         while len(to_visit) > 1:
-            # print('to_visit', to_visit)
             point = to_visit.popleft()
 
-            # print(point)
             if point == 'UP':
                 dist += 1
                 to_visit.append('UP')
@@ -250,7 +225,6 @@ class Board:
 
             to_visit += [p for p in self.get_neighbours(
                 point) if p not in visited]
-            # print('to_visit2', to_visit)
 
         return float('inf')
 
@@ -273,8 +247,6 @@ class Board:
             lambda u: u.fraction == fraction and u.is_alive(),
             self.units
         ))
-
-        # print('all from fraction', all_from_fraction)
 
         free_spots = []
 
@@ -318,34 +290,32 @@ def get_lines(test_number=0):
 
 
 def solve(elves_attack, test_number=0):
+    print(f'solving for attack {elves_attack}')
     lines = get_lines(test_number=test_number)
     original_map = [list(line) for line in lines]
     board = Board(original_map, elves_attack)
 
-    board.display()
-
-    while not board.fight_finished():
-        # for _ in range(2):
-        print(board.get_finished_rounds())
-        board.tick()
-        board.display()
-        print('Elves: ', end='')
-        elves = list(filter(
-            lambda u: u.fraction == Unit.ELF,
-            board.units
-        ))
-        print(elves)
+    try:
+        while not board.fight_finished():
+            board.tick()
+    except Exception:
+        return -1
 
     round_number = board.get_finished_rounds()
     hp_sum = board.hp_sum()
-    print(round_number, hp_sum)
     return round_number * hp_sum
 
 
 test = False
 
 if not test:
-    result = solve(3)
+    elves_attack = 4
+    while elves_attack < 200 + 1:
+        result = solve(elves_attack)
+        if result > 0:
+            break
+        elves_attack += 1
+
     print(result)
 else:
     attack_boost = [
