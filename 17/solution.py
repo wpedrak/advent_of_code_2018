@@ -82,26 +82,27 @@ def water_in_range(board, min_x, max_x, min_y, max_y):
     return count
 
 
-def is_clay(board, point):
-    x, y = point
+def is_in_board(field_type):
+    def aux(board, point):
+        x, y = point
+        return board[y][x] == field_type
 
-    return board[y][x] == CLAY
+    return aux
+
+
+is_clay = is_in_board(CLAY)
+is_water = is_in_board(WATER)
+is_empty = is_in_board(EMPTY)
+
 
 def put_water(board, point):
     x, y = point
-    # print('water', point)
-    # global cnt
-    # cnt += 1
-    # if cnt % 1000 == 0:
-    #     print(water_in_range(board, 260, 686, 5, 1856))
-    #     draw_board(board, 260, 686, 5, 1856)
     previous_value = board[y][x]
     board[y][x] = WATER
     return previous_value != WATER
 
 
 def go_down(board, source, max_y):
-    # print('go_down', source)
     x, y = source
     if y > max_y:
         return None
@@ -120,24 +121,8 @@ def go_down(board, source, max_y):
     return go_down(board, (x, y+1), max_y)
 
 
-def is_source(board, point):
-    x, y = point
-    return board[y+1][x] in [EMPTY]
-
-
-def is_water(board, point):
-    x, y = point
-    return board[y][x] == WATER
-
-
-def is_empty(board, point):
-    x, y = point
-    return board[y][x] == EMPTY
-
-
 def is_left_source(board, point):
     x, y = point
-    # print(point)
     return board[y][x] in [EMPTY, WATER] and board[y+1][x] in [EMPTY, WATER] and board[y+1][x+1] in [CLAY] and board[y][x-1] in [EMPTY]
 
 
@@ -146,14 +131,12 @@ def should_stop_left_walk(board, point):
 
 
 def go_left(board, point, min_x):
-    # print('left', point)
     x, y = point
     changed_count = 0
 
     while not should_stop_left_walk(board, point):
         if point[0] < min_x-1:
-            shift = 20
-            draw_board(board, 260, 686, 5, 1856)
+            shift = 10
             draw_board(board, x-shift, x+shift, y-shift, y+shift)
             raise Exception(f'go_left is too left: ({x}, {y})')
 
@@ -173,22 +156,18 @@ def should_stop_right_walk(board, point):
 
 
 def go_right(board, point, max_x):
-    # print('right', point)
     x, y = point
     changed_count = 0
 
     while not should_stop_right_walk(board, point):
-        # print(point)
         if point[0] > max_x+1:
-            shift = 2
-            draw_board(board, 260, 686, 5, 1856)
+            shift = 10
             draw_board(board, x-shift, x+shift, y-shift, y+shift)
-            raise Exception(f'go_left is too left: ({x}, {y})')
+            raise Exception(f'go_right is too right: ({x}, {y})')
 
         changed_count += put_water(board, point)
         point = (point[0]+1, y)
 
-    # print('end right')
     return changed_count, point
 
 
@@ -198,26 +177,21 @@ def is_source_below(board, point, min_x, max_x):
     right_changes, right_point = go_right(board, (x+1, y), max_x)
 
     if left_changes + right_changes:
-        print(left_changes)
-        print(right_changes)
-        print((x, y))
-        shift = 5
-        # draw_board(board, 260, 686, 5, 1856)
-        draw_board(board, x-25, x+25, y-shift, y+shift)
+        shift = 10
+        draw_board(board, x-shift, x+shift, y-shift, y+shift)
         raise Exception('it only check, it should not change anything')
 
     return is_left_source(board, left_point) or is_right_source(board, right_point)
 
 
 def go_up(board, point, min_x, max_x, min_y):
-    # print('up', point)
     x, y = point
 
     put_water(board, point)
 
     if y < min_y-1:
-        shift = 3
-        draw_board(board, x-shift*4, x+shift*4, y-shift, y+shift*3)
+        shift = 10
+        draw_board(board, x-shift, x+shift, y-shift, y+shift)
         raise Exception(f'go_up is too high: ({x}, {y})')
 
     left_changes, left_point = go_left(board, (x-1, y), min_x)
@@ -231,17 +205,10 @@ def go_up(board, point, min_x, max_x, min_y):
     if is_right_source(board, right_point):
         sources.append(right_point)
 
-    # print('sources', sources)
-
     if sources:
         return sources
 
-    # print('changes', left_changes + right_changes)
-
-    # if left_changes + right_changes:
     return go_up(board, (x, y-1), min_x, max_x, min_y)
-
-    # return []
 
 
 def is_used_source(source):
@@ -254,7 +221,6 @@ def use_sources(sources):
 
 
 def fill_with_water(board, source, min_x, max_x, min_y, max_y):
-    # print('filling', source)
     last_point = go_down(board, source, max_y)
 
     if not last_point:
@@ -262,14 +228,12 @@ def fill_with_water(board, source, min_x, max_x, min_y, max_y):
 
     x, y = last_point
 
-    # print('last_point is', last_point)
-
     if is_water(board, (x, y+1)) and is_source_below(board, last_point, min_x, max_x):
         return
 
     potential_new_sources = go_up(board, last_point, min_x, max_x, min_y)
     new_sources = list(filter(
-        lambda s: is_empty(board, s),# or not is_used_source(s),
+        lambda s: is_empty(board, s),
         potential_new_sources
     ))
 
@@ -285,32 +249,19 @@ def solve(rectangles, source):
     min_y = min(rectangles, key=lambda r: r.top_left[1]).top_left[1]
     max_y = max(rectangles, key=lambda r: r.bot_right[1]).bot_right[1]
 
-    print(min_x, max_x, min_y, max_y)
-
     board = [['.'] * (max_x + 13) for _ in range(max_y + 13)]
 
     for rectangle in rectangles:
         put_rectangle_on_board(board, rectangle)
 
-    # draw_board(board, min_x, max_x, min_y, max_y)
-    # print('')
-
     fill_with_water(board, source, min_x, max_x, min_y, max_y)
 
-    draw_board(board, min_x-2, max_x+2, min_y, max_y)
-    # draw_board(board, min_x+180, max_x-200, min_y + 150, max_y-1600)
-    print('')
-    # draw_board(board, 471-5, 471+5, 241-10, 241+10)
-    print('')
-
+    # draw_board(board, min_x-2, max_x+2, min_y, max_y)
     return water_in_range(board, min_x, max_x, min_y, max_y)
 
 
 lines = get_lines()
 rectangles = parse(lines)
-# print(rectangles)
 result = solve(rectangles, WATER_SOURCE)
 
 print(result)
-# 52724 is too low
-# 52801 is to high
