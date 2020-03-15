@@ -102,6 +102,7 @@ cnt = 0
 
 def put_water(board, point):
     x, y = point
+    print('water', point)
     # global cnt
     # cnt += 1
     # if cnt % 1000 == 0:
@@ -116,6 +117,9 @@ def go_down(board, source, max_y):
     # print('go_down', source)
     x, y = source
     if y > max_y:
+        return None
+
+    if is_water(board, (x, y)) and is_empty(board, (x, y-1)):
         return None
 
     if is_clay(board, source) or is_water(board, (x, y)):
@@ -204,8 +208,13 @@ def is_source_below(board, point, min_x, max_x):
     right_changes, right_point = go_right(board, (x+1, y), max_x)
 
     if left_changes + right_changes:
-        print(left_changes + right_changes)
-        # raise Exception('it only check, it should not change anything')
+        print(left_changes)
+        print(right_changes)
+        print((x, y))
+        shift = 15
+        draw_board(board, 260, 686, 5, 1856)
+        draw_board(board, x-shift, x+shift, y-shift, y+shift)
+        raise Exception('it only check, it should not change anything')
 
     return is_left_source(board, left_point) or is_right_source(board, right_point)
 
@@ -213,10 +222,6 @@ def is_source_below(board, point, min_x, max_x):
 def go_up(board, point, min_x, max_x, min_y):
     print('up', point)
     x, y = point
-
-    # check if should spread
-    # if is_water(board, (x, y+1)) and is_source_below(board, point, min_x, max_x):
-    #     return []
 
     put_water(board, point)
 
@@ -243,10 +248,10 @@ def go_up(board, point, min_x, max_x, min_y):
 
     print('changes', left_changes + right_changes)
 
-    if left_changes + right_changes:
-        return go_up(board, (x, y-1), min_x, max_x, min_y)
+    # if left_changes + right_changes:
+    return go_up(board, (x, y-1), min_x, max_x, min_y)
 
-    return []
+    # return []
 
 
 def is_used_source(source):
@@ -263,10 +268,14 @@ def fill_with_water(board, source, min_x, max_x, min_y, max_y):
     last_point = go_down(board, source, max_y)
 
     if not last_point:
-        # print('no last')
         return
 
-    # print(last_point)
+    x, y = last_point
+
+    print('last_point is', last_point)
+
+    if is_water(board, (x, y+1)) and is_source_below(board, last_point, min_x, max_x):
+        return
 
     potential_new_sources = go_up(board, last_point, min_x, max_x, min_y)
     new_sources = list(filter(
