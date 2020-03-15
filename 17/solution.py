@@ -1,13 +1,5 @@
 import sys
 
-# the setrecursionlimit function is
-# used to modify the default recursion
-# limit set by python. Using this,
-# we can increase the recursion limit
-# to satisfy our needs
-
-# sys.setrecursionlimit(10**4)
-
 WATER_SOURCE = (500, 0)
 EMPTY = '.'
 CLAY = '#'
@@ -84,7 +76,7 @@ def water_in_range(board, min_x, max_x, min_y, max_y):
     count = 0
 
     for y in range(min_y, max_y + 1):
-        for x in range(min_x, max_x + 1):
+        for x in range(min_x-1, max_x + 2):
             count += board[y][x] == WATER
 
     return count
@@ -94,11 +86,6 @@ def is_clay(board, point):
     x, y = point
 
     return board[y][x] == CLAY
-
-
-global cnt
-cnt = 0
-
 
 def put_water(board, point):
     x, y = point
@@ -310,7 +297,7 @@ def solve(rectangles, source):
 
     fill_with_water(board, source, min_x, max_x, min_y, max_y)
 
-    draw_board(board, min_x, max_x, min_y, max_y)
+    draw_board(board, min_x-2, max_x+2, min_y, max_y)
     # draw_board(board, min_x+180, max_x-200, min_y + 150, max_y-1600)
     print('')
     # draw_board(board, 471-5, 471+5, 241-10, 241+10)
@@ -326,3 +313,4 @@ result = solve(rectangles, WATER_SOURCE)
 
 print(result)
 # 52724 is too low
+# 52801 is to high
