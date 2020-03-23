@@ -1,3 +1,7 @@
+from collections import defaultdict
+import numpy as np
+
+
 def get_lines():
     filename = 'input'
     file = open(f"{filename}.txt", "r")
@@ -47,6 +51,13 @@ class Nanobot(Point):
     def intersects(self, nanobot):
         dist = self.dist(nanobot)
         return dist <= self.r + nanobot.r
+
+    def freedom_after_intersection(self, nanobot):
+        dist = self.dist(nanobot)
+        return (self.r + nanobot.r) - dist
+
+    def __repr__(self):
+        return f'({self.x}, {self.y}, {self.z}) r={self.r}'
 
 
 def check_point(nanobots, point):
@@ -101,19 +112,36 @@ def get_intersections(nanobots):
     return intersections
 
 
+def intersection(nanobots, left_getter, right_getter):
+    left = - float('inf')
+    right = float('inf')
+
+    for n in nanobots:
+        bounds = [left_getter(n), right_getter(n)]
+        current_min = min(bounds)
+        current_max = max(bounds)
+        left = max(left, current_min)
+        right = min(right, current_max)
+
+    return left, right
+
+
+def mark(value, middle):
+    return 'G' if value > middle else 'L'
+
 
 lines = get_lines()
-nanobots = parse(lines)
-CURRENT_BEST = 859
+nanobots_from_input = parse(lines)
+CURRENT_BEST = 859  # using grid search commented below
+nanobots = filter_useless(CURRENT_BEST, nanobots_from_input)
 
-x_min, x_max = get_min_max(nanobots, lambda n: n.x)
-y_min, y_max = get_min_max(nanobots, lambda n: n.y)
-z_min, z_max = get_min_max(nanobots, lambda n: n.z)
+# x_min, x_max = get_min_max(nanobots, lambda n: n.x)
+# y_min, y_max = get_min_max(nanobots, lambda n: n.y)
+# z_min, z_max = get_min_max(nanobots, lambda n: n.z)
 
-# for grid_size in range(1, 100):
-#     # grid_size = 3
+# for grid_size in range(1, 20):
 #     print(grid_size)
-#     points = make_grid(grid_size, x_min, x_max, y_min, y_max, z_min, z_max)
+#     points = make_grid(grid_size, left_x, right_x, left_y, right_y, left_z, right_z)
 #     in_range = [check_point(nanobots, p) for p in points]
 #     max_in_range = max(in_range)
 #     max_idx = in_range.index(max_in_range)
@@ -121,13 +149,53 @@ z_min, z_max = get_min_max(nanobots, lambda n: n.z)
 #     print(max_in_range)
 #     print(max_point)
 
-nanobots2 = filter_useless(CURRENT_BEST, nanobots)
-intersections = get_intersections(nanobots2)
+zero_freedom = set()
+zero_freedom_points = set()
 
-print(min(intersections))
-print(max(intersections))
+for n1 in nanobots:
+    for n2 in nanobots:
+        freedom = n1.freedom_after_intersection(n2)
+        if not freedom and (n2, n1) not in zero_freedom:
+            zero_freedom.add((n1, n2))
+            zero_freedom_points.add(n1)
+            zero_freedom_points.add(n2)
 
 
-# current best: 859
-# upper bound: 972
-# print(check_point(nanobots, Point(48365889, 45740560, 43704147)))
+left_x, right_x = intersection(
+    zero_freedom, lambda n: n[0].x, lambda n: n[1].x)
+left_y, right_y = intersection(
+    zero_freedom, lambda n: n[0].y, lambda n: n[1].y)
+left_z, right_z = intersection(
+    zero_freedom, lambda n: n[0].z, lambda n: n[1].z)
+
+markers = defaultdict(lambda: [])
+
+for zfp in zero_freedom_points:
+    x_marker = mark(zfp.x, (right_x + left_x) // 2)
+    y_marker = mark(zfp.y, (right_y + left_y) // 2)
+    z_marker = mark(zfp.z, (right_z + left_z) // 2)
+    marker = x_marker + y_marker + z_marker
+    markers[marker].append(zfp)
+
+lgg = markers['LGG'][0]
+glg = markers['GLG'][0]
+ggl = markers['GGL'][0]
+
+equations = np.array([
+    [-1, 1, 1],
+    [1, -1, 1],
+    [1, 1, -1]
+])
+
+results = np.array([
+    - lgg.r - lgg.x + lgg.y + lgg.z,
+    - glg.r + glg.x - glg.y + glg.z,
+    - ggl.r + ggl.x + ggl.y - ggl.z
+])
+
+
+solution = [int(res) for res in np.linalg.solve(equations, results)]
+
+# print(check_point(nanobots_from_input, Point(*solution)))
+print(Point(*solution).dist(Point(0, 0, 0)))
+
